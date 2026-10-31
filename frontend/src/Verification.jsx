@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 
-const API = 'http://127.0.0.1:8000';
+const API = 'https://graviton-disasterlens.onrender.com';
 
 export default function Verification({ reports, onRefresh }) {
   const [busyId, setBusyId] = useState(null);

@@ -5,7 +5,7 @@ import Verification from './Verification';
 import IncidentMap from './IncidentMap';
 import './App.css';
 
-const API = 'http://127.0.0.1:8000';
+const API = 'https://graviton-disasterlens.onrender.com';
 const MENU = [
   { name: 'Dashboard', icon: '◈' },
   { name: 'Submit Report', icon: '⊕' },
