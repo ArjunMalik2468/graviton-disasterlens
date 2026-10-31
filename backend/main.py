@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, UnidentifiedImageError
 from PIL.ExifTags import TAGS, GPSTAGS
@@ -11,6 +11,25 @@ import hashlib
 import io
 import uuid
 import math
+
+import os
+import secrets
+
+def sql(query):
+    if os.getenv("DATABASE_URL"):
+        return query
+    return query.replace("%s", "?")
+
+
+def require_reviewer_key(provided_key):
+    expected_key = os.getenv("REVIEWER_API_KEY")
+    if not expected_key:
+        if os.getenv("DATABASE_URL"):
+            raise HTTPException(503, "Reviewer access is not configured")
+        return  # Local development only
+    if not provided_key or not secrets.compare_digest(provided_key, expected_key):
+        raise HTTPException(403, "Reviewer access denied")
+
 
 app = FastAPI(title="DisasterLens AI API")
 
@@ -92,12 +111,12 @@ async def create_report(
     review_status = "Awaiting Review"
 
     with connect() as db:
-        db.execute("""
+        db.execute(sql("""
             INSERT INTO reports
             (id, type, description, lat, lng, status,
              reason, sha256, phash, image_status, review_status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """), (
             report_id, type, description, lat, lng,
             status, reason, sha, phash, image_status, review_status
         ))
@@ -123,7 +142,7 @@ def get_reports():
                    status, reason, image_status,
                    review_status, created_at
             FROM reports
-            ORDER BY created_at DESC, rowid DESC
+            ORDER BY created_at DESC, id DESC
         """).fetchall()
     return [dict(row) for row in rows]
 
@@ -133,10 +152,15 @@ class ReviewRequest(BaseModel):
 
 
 @app.patch("/reports/{report_id}/review")
-def review_report(report_id: str, review: ReviewRequest):
+def review_report(
+    report_id: str,
+    review: ReviewRequest,
+    x_reviewer_key: str | None = Header(default=None)
+):
+    require_reviewer_key(x_reviewer_key)
     with connect() as db:
         report = db.execute(
-            "SELECT id, status, review_status FROM reports WHERE id = ?",
+            sql("SELECT id, status, review_status FROM reports WHERE id = %s"),
             (report_id,)
         ).fetchone()
 
@@ -146,7 +170,7 @@ def review_report(report_id: str, review: ReviewRequest):
             raise HTTPException(409, "Report has already been reviewed")
 
         db.execute(
-            "UPDATE reports SET status = ?, review_status = ? WHERE id = ?",
+            sql("UPDATE reports SET status = %s, review_status = %s WHERE id = %s"),
             (review.decision, review.decision, report_id)
         )
 
