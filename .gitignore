@@ -1,0 +1,25 @@
+# Secrets
+backend/.env
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Python
+backend/venv/
+**/__pycache__/
+*.pyc
+
+# Databases
+backend/disasterlens.db
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Backups
+*backup*
