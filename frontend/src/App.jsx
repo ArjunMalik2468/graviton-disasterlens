@@ -174,9 +174,17 @@ function App() {
   }
 
   const total = reports.length;
-  const verified = reports.filter(r => r.status === 'Verified').length;
-  const duplicates = reports.filter(r => r.status === 'Duplicate').length;
-  const pending = reports.filter(r => r.status === 'Pending' || r.review_status === 'Awaiting Review').length;
+ const verified = reports.filter(
+  r => r.review_status === 'Verified'
+).length;
+
+const duplicates = reports.filter(
+  r => ['Duplicate', 'Possible Duplicate'].includes(r.image_status)
+).length;
+
+const pending = reports.filter(
+  r => r.review_status === 'Awaiting Review'
+).length;
   const stats = [
     { label: 'Total reports', value: total, icon: '▤', tone: 'blue', detail: 'Submitted incidents' },
     { label: 'Verified', value: verified, icon: '✓', tone: 'green', detail: 'Verified status' },
